@@ -4,7 +4,7 @@
 
 version: 2
 updates:
-  - package-ecosystem: "gradle" # See documentation for possible values
+  - package-ecosystem: "maven" # See documentation for possible values
     directory: "pom.xml" # Location of package manifests
     schedule:
       interval: "daily"
