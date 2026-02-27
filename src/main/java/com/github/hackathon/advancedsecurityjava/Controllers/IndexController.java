@@ -2,9 +2,9 @@ package com.github.hackathon.advancedsecurityjava.Controllers;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class IndexController {
 
-  private static Connection connection;
-
   @GetMapping("/")
   @ResponseBody
   public List<Book> getBooks(@RequestParam(name = "name", required = false) String bookname,
@@ -28,31 +26,42 @@ public class IndexController {
       @RequestParam(name = "read", required = false) Boolean bookread) {
     List<Book> books = new ArrayList<Book>();
 
-    Statement statement = null;
+    Connection connection = null;
+    PreparedStatement statement = null;
 
     try {
       // Init connection to DB
       connection = DriverManager.getConnection(Application.connectionString);
 
-      statement = connection.createStatement();
       String query = null;
+      String stringParam = null;
+      Integer intParam = null;
 
       if (bookname != null) {
         // Filter by book name
-        query = "SELECT * FROM Books WHERE name LIKE '%" + bookname + "%'";
+        query = "SELECT * FROM Books WHERE name LIKE ?";
+        stringParam = "%" + bookname + "%";
       } else if (bookauthor != null) {
         // Filter by book author
-        query = "SELECT * FROM Books WHERE author LIKE '%" + bookauthor + "%'";
+        query = "SELECT * FROM Books WHERE author LIKE ?";
+        stringParam = "%" + bookauthor + "%";
       } else if (bookread != null) {
         // Filter by if the book has been read or not
-        Integer read = bookread ? 1 : 0;
-        query = "SELECT * FROM Books WHERE read = '" + read.toString() + "'";
+        query = "SELECT * FROM Books WHERE read = ?";
+        intParam = bookread ? 1 : 0;
       } else {
         // All books
         query = "SELECT * FROM Books";
       }
 
-      ResultSet results = statement.executeQuery(query);
+      statement = connection.prepareStatement(query);
+      if (stringParam != null) {
+        statement.setString(1, stringParam);
+      } else if (intParam != null) {
+        statement.setInt(1, intParam);
+      }
+
+      ResultSet results = statement.executeQuery();
 
       while (results.next()) {
         Book book = new Book(results.getString("name"), results.getString("author"), (results.getInt("read") == 1));
@@ -61,17 +70,17 @@ public class IndexController {
       }
 
     } catch (SQLException error) {
-      error.printStackTrace();
+      Application.logger.error("Database error", error);
     } finally {
       try {
-        if (connection != null) {
-          connection.close();
-        }
         if (statement != null) {
           statement.close();
         }
+        if (connection != null) {
+          connection.close();
+        }
       } catch (SQLException error) {
-        error.printStackTrace();
+        Application.logger.error("Failed to close resources", error);
       }
     }
     return books;
