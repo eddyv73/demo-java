@@ -28,8 +28,8 @@ public class Application {
 		try {
 			Class.forName("org.sqlite.JDBC");
 		} catch (ClassNotFoundException error) {
-		error.printStackTrace();
-		System.exit(1);
+			logger.error("SQLite JDBC driver not found", error);
+			System.exit(1);
 		}
 	
 		createDatabase();
@@ -58,7 +58,7 @@ public class Application {
 			  "CREATE TABLE IF NOT EXISTS Books (id INTEGER PRIMARY KEY, name TEXT NOT NULL, author TEXT NOT NULL, read INTEGER, UNIQUE(name))");
 	
 		} catch (SQLException error) {
-		  error.printStackTrace();
+		  logger.error("Failed to create database", error);
 		  System.exit(1);
 		}
 	
@@ -83,9 +83,8 @@ public class Application {
 	
 		  }
 		} catch (SQLException error) {
-		  error.printStackTrace();
+		  logger.error("Failed to connect to database for creating entries", error);
 		  System.exit(2);
 		}
 	  }
-
 }
